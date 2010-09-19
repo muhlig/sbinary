@@ -10,24 +10,24 @@ import java.io._;
 import Operations._;
 
 trait Generic extends CoreProtocol{
-  implicit def arrayFormat[T](implicit fmt : Format[T], mf: scala.reflect.Manifest[T]) : Format[Array[T]];
+  implicit def arrayFormat[T: Format : Manifest] : Format[Array[T]];
   // Needed to implement viaSeq, which is need for 2.7/2.8 compatibility -MH
-  implicit def listFormat[T](implicit fmt : Format[T]) : Format[List[T]];
+  implicit def listFormat[T: Format] : Format[List[T]];
 
   /** A more general LengthEncoded.  For 2.7/8 compatibility (arrays are no longer collections). -MH*/
-  abstract class CollectionFormat[S, T](implicit binT : Format[T]) extends Format[S]{
+  abstract class CollectionFormat[S, T: Format] extends Format[S] {
     def size(s: S): Int
     def foreach(s: S)(f: T => Unit): Unit
     def build(size : Int, ts : Iterator[T]) : S;
 
-    def reads(in : Input) = { val size = read[Int](in); build(size, (0 until size).map(i => read[T](in)).elements) }
+    def reads(in : Input) = { val size = read[Int](in); build(size, (0 until size).map(i => read[T](in)).iterator) }
     def writes(out : Output, ts : S) = { write(out, size(ts)); foreach(ts)(write(out, _)); }
   }
   /** 
    * Format instance which encodes the collection by first writing the length
    * of the collection as an int, then writing the collection elements in order.
    */
-  abstract class LengthEncoded[S <: Collection[T], T](implicit binT : Format[T]) extends CollectionFormat[S, T]{
+  abstract class LengthEncoded[S <: Iterable[T], T: Format] extends CollectionFormat[S, T] {
     def size(s: S) = s.size
     def foreach(s: S)(f: T => Unit) = s.foreach(f)
   }
@@ -37,7 +37,7 @@ trait Generic extends CoreProtocol{
    *
    * implicit Manifest required as of 0.3.1 for Scala 2.8 compatibility. -MH
    */
-  def viaArray[S <: Collection[T], T] (f : Array[T] => S) (implicit binary : Format[T], mf: scala.reflect.Manifest[T]) : Format[S] = new Format[S] {
+  def viaArray[S <: Iterable[T], T: Format : Manifest] (f : Array[T] => S): Format[S] = new Format[S] {
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
     def reads(in : Input) = f(read[Array[T]](in));
   }
@@ -46,7 +46,7 @@ trait Generic extends CoreProtocol{
    *
    * Exists to solve 2.7/2.8 compatibility.  -MH
    */
-  def viaSeq[S <: Collection[T], T] (f : Seq[T] => S) (implicit binary : Format[T]) : Format[S] = new Format[S] {
+  def viaSeq[S <: Iterable[T], T: Format] (f : Seq[T] => S) : Format[S] = new Format[S] {
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
     def reads(in : Input) = f(read[List[T]](in));
   }
@@ -70,7 +70,7 @@ trait Generic extends CoreProtocol{
   /**
    * Serializes this via a bijection to some other type. 
    */
-  def wrap[S, T](to : S => T, from : T => S)(implicit bin : Format[T]) = new Format[S]{
+  def wrap[S, T: Format](to : S => T, from : T => S) = new Format[S]{
     def reads(in : Input) = from(read[T](in));
     def writes(out : Output, s : S) = write(out, to(s));
   }
@@ -78,7 +78,7 @@ trait Generic extends CoreProtocol{
   /**
    * Lazy wrapper around a binary. Useful when you want e.g. mutually recursive binary instances.
    */
-  def lazyFormat[S](bin : =>Format[S]) = new Format[S]{
+  def lazyFormat[S](bin: => Format[S]) = new Format[S] {
     lazy val delegate = bin;
 
     def reads(in : Input) = delegate.reads(in);
@@ -89,7 +89,7 @@ trait Generic extends CoreProtocol{
    * Attaches a stamp to the data. This stamp is placed at the beginning of the format and may be used
    * to verify the integrity of the data (e.g. a magic number for the data format version). 
    */
-  def withStamp[S, T](stamp : S)(binary : Format[T])(implicit binS : Format[S]) : Format[T] = new Format[T]{
+  def withStamp[S: Format, T](stamp : S)(binary : Format[T]) : Format[T] = new Format[T] {
     def reads(in : Input) = {
       val datastamp = read[S](in);
       if (stamp != datastamp) error("Incorrect stamp. Expected: " + stamp + ", Found: " + datastamp);
@@ -138,9 +138,9 @@ trait Generic extends CoreProtocol{
     }  
 </#list>
 
-  case class Summand[T](clazz : Class[_], format : Format[T]);
-  implicit def classToSummand[T](clazz : Class[T])(implicit bin : Format[T]) : Summand[T] = Summand[T](clazz, bin);
-  implicit def formatToSummand[T](format : Format[T])(implicit mf : scala.reflect.Manifest[T]) : Summand[T] = Summand[T](mf.erasure, format);
+  case class Summand[T](clazz : Class[_], format: Format[T]);
+  implicit def classToSummand[T: Format](clazz : Class[T]) : Summand[T] = Summand[T](clazz, implicitly[Format[T]])
+  implicit def formatToSummand[T: Format : Manifest](format : Format[T]): Summand[T] = Summand[T](manifest[T].erasure, format)
   // This is a bit gross. 
   implicit def anyToSummand[T](t : T) = Summand[T](t.asInstanceOf[AnyRef].getClass, asSingleton(t))
 
