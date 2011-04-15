@@ -1,7 +1,6 @@
 import sbt._
 
-class SBinaryProject(info: ProjectInfo) extends ParentProject(info) with NoPublish
-{
+class SBinaryProject(info: ProjectInfo) extends ParentProject(info) with NoPublish {
 	// publishing
 	override def managedStyle = ManagedStyle.Maven
 	val publishTo = "Scala Tools Nexus" at "http://nexus.scala-tools.org/content/repositories/releases/"
@@ -16,7 +15,7 @@ class SBinaryProject(info: ProjectInfo) extends ParentProject(info) with NoPubli
 	}
 	class CoreProject(info: ProjectInfo) extends DefaultProject(info) with TemplateProject
 	{
-	  val scalacheck = "org.scala-tools.testing" %% "scalacheck" % "1.7" % "test"
+	  val scalacheck = "org.scala-tools.testing" %% "scalacheck" % "1.8" % "test"
 
 		override def mainResources = super.mainResources +++ "LICENSE"
 	}
@@ -26,3 +25,4 @@ trait NoPublish extends BasicManagedProject
 	override def deliverAction = publishAction
 	override def publishAction = task { None }
 }
+

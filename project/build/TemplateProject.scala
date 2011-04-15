@@ -1,10 +1,9 @@
 import sbt._
 import FileUtilities.{clean, createDirectory}
 
-trait TemplateProject extends DefaultProject with FileTasks
-{
+trait TemplateProject extends DefaultProject with FileTasks {
 	// declares fmpp as a managed dependency.  By declaring it in the private 'fmpp' configuration, it doesn't get published
-	val fmppDep = "net.sourceforge.fmpp" % "fmpp" % "0.9.13" % "fmpp"
+	val fmppDep = "net.sourceforge.fmpp" % "fmpp" % "0.9.14" % "fmpp"
 	val fmppConf = config("fmpp") hide
 	def fmppClasspath = configurationClasspath(fmppConf)
 
@@ -33,3 +32,4 @@ trait TemplateProject extends DefaultProject with FileTasks
 	override def compileAction = super.compileAction dependsOn(template)
 	override def testCompileAction = super.testCompileAction dependsOn(testTemplate)
 }
+
