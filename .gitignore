@@ -1,0 +1,10 @@
+/project/build/target/
+/project/boot/
+/target/
+/core/target/
+/examples/bt/target/
+*_managed/
+*.swp
+*~
+
+
