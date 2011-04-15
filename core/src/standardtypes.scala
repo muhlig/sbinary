@@ -50,7 +50,7 @@ trait CollectionTypes extends BasicTypes with Generic{
       } 
     }
 
-  implicit def arrayFormat[T: Format : Manifest] : Format[Array[T]] = implicitly[Format[T]] match {
+  implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]] = implicitly[Format[T]] match {
     case ByteFormat => ByteArrayFormat.asInstanceOf[Format[Array[T]]];
     case _ => 
       new CollectionFormat[Array[T], T]{

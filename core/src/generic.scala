@@ -10,7 +10,7 @@ import java.io._;
 import Operations._;
 
 trait Generic extends CoreProtocol{
-  implicit def arrayFormat[T: Format : Manifest] : Format[Array[T]];
+  implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]];
   // Needed to implement viaSeq, which is need for 2.7/2.8 compatibility -MH
   implicit def listFormat[T: Format] : Format[List[T]];
 
@@ -35,9 +35,9 @@ trait Generic extends CoreProtocol{
   /**
    * Length encodes, but with the result built from an array.
    *
-   * implicit Manifest required as of 0.3.1 for Scala 2.8 compatibility. -MH
+   * implicit ClassManifest required as of 0.3.1 for Scala 2.8 compatibility. -MH
    */
-  def viaArray[S <: Iterable[T], T: Format : Manifest] (f : Array[T] => S): Format[S] = new Format[S] {
+  def viaArray[S <: Iterable[T], T: Format : ClassManifest] (f : Array[T] => S): Format[S] = new Format[S] {
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
     def reads(in : Input) = f(read[Array[T]](in));
   }
@@ -114,15 +114,13 @@ trait Generic extends CoreProtocol{
   }
 
   <#list 2..9 as i> 
+  <#assign typeSignature><#list 1..i as j>T${j} : Format<#if i !=j>,</#if></#list></#assign>
   <#assign typeParams><#list 1..i as j>T${j}<#if i !=j>,</#if></#list></#assign>
   /**
    * Represents this type as ${i} consecutive binary blocks of type T1..T${i},
    * relative to the specified way of decomposing and composing S as such.
    */
-  def asProduct${i}[S, ${typeParams}](apply : (${typeParams}) => S)(unapply : S => Product${i}[${typeParams}])(implicit
-   <#list 1..i as j>
-      bin${j} : Format[T${j}] <#if i != j>,</#if>
-    </#list>) = new Format[S]{
+  def asProduct${i}[S, ${typeSignature}](apply : (${typeParams}) => S)(unapply : S => Product${i}[${typeParams}]) = new Format[S]{
        def reads (in : Input) : S = apply(
       <#list 1..i as j>
          read[T${j}](in)<#if i != j>,</#if>
@@ -140,7 +138,7 @@ trait Generic extends CoreProtocol{
 
   case class Summand[T](clazz : Class[_], format: Format[T]);
   implicit def classToSummand[T: Format](clazz : Class[T]) : Summand[T] = Summand[T](clazz, implicitly[Format[T]])
-  implicit def formatToSummand[T: Format : Manifest](format : Format[T]): Summand[T] = Summand[T](manifest[T].erasure, format)
+  implicit def formatToSummand[T: Format : ClassManifest](format : Format[T]): Summand[T] = Summand[T](implicitly[ClassManifest[T]].erasure, format)
   // This is a bit gross. 
   implicit def anyToSummand[T](t : T) = Summand[T](t.asInstanceOf[AnyRef].getClass, asSingleton(t))
 

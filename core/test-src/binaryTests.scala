@@ -139,7 +139,7 @@ object FormatTests extends Properties("Formats"){
   }
 
   //implicit def arbitrarySet[T](implicit arb : Arbitrary[T]) : Arbitrary[immutable.Set[T]] = Arbitrary(arbitrary[List[T]].map((x : List[T]) => immutable.Set(x :_*)));
-  implicit def arbitraryArray[T](implicit arb : Arbitrary[T], mf: scala.reflect.Manifest[T]) : Arbitrary[Array[T]] =
+  implicit def arbitraryArray[T : Arbitrary : ClassManifest] : Arbitrary[Array[T]] =
      Arbitrary(arbitrary[List[T]].map((x : List[T]) => x.toArray[T]));
 
   implicit val arbitraryEnumeration : Arbitrary[Enumeration] = Arbitrary(arbitrary[List[String]].map(x => new Enumeration(x : _*){}));
