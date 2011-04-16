@@ -1,3 +1,5 @@
+<#include "scala.ftl"/>
+
 /**
  * Generic operations for building binary instances.
  */
@@ -10,7 +12,8 @@ import java.io._;
 import Operations._;
 
 trait Generic extends CoreProtocol{
-  implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]];
+  implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]]
+
   // Needed to implement viaSeq, which is need for 2.7/2.8 compatibility -MH
   implicit def listFormat[T: Format] : Format[List[T]];
 
@@ -23,6 +26,7 @@ trait Generic extends CoreProtocol{
     def reads(in : Input) = { val size = read[Int](in); build(size, (0 until size).map(i => read[T](in)).iterator) }
     def writes(out : Output, ts : S) = { write(out, size(ts)); foreach(ts)(write(out, _)); }
   }
+
   /** 
    * Format instance which encodes the collection by first writing the length
    * of the collection as an int, then writing the collection elements in order.
@@ -41,6 +45,7 @@ trait Generic extends CoreProtocol{
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
     def reads(in : Input) = f(read[Array[T]](in));
   }
+
   /**
    * Length encodes, but with the result built from a Seq.
    *
@@ -58,7 +63,7 @@ trait Generic extends CoreProtocol{
     def reads(in : Input) = f(read[String](in));
     def writes(out : Output, t : T) = write(out, t.toString);
   }
-  
+
   /**
    * Trivial serialization. Writing is a no-op, reading always returns this instance.
    */
@@ -113,41 +118,41 @@ trait Generic extends CoreProtocol{
     def writes(out : Output, value : V) = write(out, value.id)
   }
 
-  <#list 2..9 as i> 
-  <#assign typeSignature><#list 1..i as j>T${j} : Format<#if i !=j>,</#if></#list></#assign>
-  <#assign typeParams><#list 1..i as j>T${j}<#if i !=j>,</#if></#list></#assign>
+<#list 2..9 as i>
   /**
    * Represents this type as ${i} consecutive binary blocks of type T1..T${i},
    * relative to the specified way of decomposing and composing S as such.
    */
-  def asProduct${i}[S, ${typeSignature}](apply : (${typeParams}) => S)(unapply : S => Product${i}[${typeParams}]) = new Format[S]{
-       def reads (in : Input) : S = apply(
-      <#list 1..i as j>
-         read[T${j}](in)<#if i != j>,</#if>
-      </#list>
-      )
+   def asProduct${i}[S, <@tbounds n=i bounds="Format"/>](apply : (<@tlist n=i/>) => S)(unapply : S => <@Product n=i/>) =
+     new Format[S]{
+       def reads (in : Input) : S = apply(<#list 1..i as j>read[T${j}](in)<#if i != j>, </#if></#list>)
 
       def writes(out : Output, s : S) = {
         val product = unapply(s);
         <#list 1..i as j>
           write(out, product._${j});
-        </#list>;       
+        </#list>
       }
-    }  
+    }
 </#list>
 
-  case class Summand[T](clazz : Class[_], format: Format[T]);
-  implicit def classToSummand[T: Format](clazz : Class[T]) : Summand[T] = Summand[T](clazz, implicitly[Format[T]])
-  implicit def formatToSummand[T: Format : ClassManifest](format : Format[T]): Summand[T] = Summand[T](implicitly[ClassManifest[T]].erasure, format)
+  case class Summand[T](clazz : Class[_], format: Format[T])
+
+  implicit def classToSummand[T: Format](clazz : Class[T]) : Summand[T] =
+   Summand[T](clazz, implicitly[Format[T]])
+
+  implicit def formatToSummand[T: Format : ClassManifest](format : Format[T]): Summand[T] =
+    Summand[T](implicitly[ClassManifest[T]].erasure, format)
+
   // This is a bit gross. 
   implicit def anyToSummand[T](t : T) = Summand[T](t.asInstanceOf[AnyRef].getClass, asSingleton(t))
 
   /**
    * Uses a single tag byte to represent S as a union of subtypes. 
    */
-  def asUnion[S](summands : Summand[_ <: S]*) : Format[S] = 
-    if (summands.length >= 256) error("Sums of 256 or more elements currently not supported");
-    else
+  def asUnion[S](summands : Summand[_ <: S]*) : Format[S] = {
+    require(summands.length < 256, "Sums of 256 or more elements currently not supported")
+
     new Format[S]{
       val mappings = summands.toArray.zipWithIndex;
 
@@ -158,10 +163,12 @@ trait Generic extends CoreProtocol{
           case Some( (sum, i) ) => writeSum(out, s, sum, i)
           case None => error("No known sum type for object " + s);
         }
+
       private def writeSum[T](out : Output, s : S, sum : Summand[T], i : Int) {
         write(out, i.toByte);
         // 2.7/2.8 compatibility: cast added by MH
         write(out, sum.clazz.cast(s).asInstanceOf[T])(sum.format);
       }
+    }
   }
 }

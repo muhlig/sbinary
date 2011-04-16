@@ -1,3 +1,5 @@
+<#include "scala.ftl" />
+
 package sbinary;
 
 import Operations._;
@@ -17,25 +19,18 @@ trait BasicTypes extends CoreProtocol{
   }
 
 <#list 2..22 as i>
-  <#assign typeName>
-   Tuple${i}[<#list 1..i as j>T${j} <#if i != j>,</#if></#list>]
-  </#assign>
-  implicit def tuple${i}Format[<#list 1..i as j>T${j}<#if i !=j>,</#if></#list>](implicit 
+  implicit def tuple${i}Format[<@tbounds n=i bounds="Format"/>] : Format[<@Tuple n=i/>] = new Format[<@Tuple n=i/>]{
+    def reads (in : Input) : <@Tuple n=i/> = (
     <#list 1..i as j>
-      bin${j} : Format[T${j}] <#if i != j>,</#if>
+      read[T${j}](in)<#if i!=j>,</#if>
     </#list>
-    ) : Format[${typeName}] = new Format[${typeName}]{
-      def reads (in : Input) : ${typeName} = ( 
+    )
+
+  def writes(out : Output, tuple : <@Tuple n=i/>) = {
     <#list 1..i as j>
-        read[T${j}](in)<#if i!=j>,</#if>
+      write(out, tuple._${j});
     </#list>
-      )
-    
-      def writes(out : Output, tuple : ${typeName}) = {
-      <#list 1..i as j>
-        write(out, tuple._${j});      
-      </#list>;
-      }
+    }
   }
 </#list>
 }

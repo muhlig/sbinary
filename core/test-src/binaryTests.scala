@@ -126,10 +126,7 @@ object FormatTests extends Properties("Formats"){
         case (e : Throwable) => e.printStackTrace; false 
       })
 
-  def formatSpec[T](name : String)(implicit 
-                     bin : Format[T], 
-                     arb : Arbitrary[T],
-                    equal : Equal[T]) = 
+  def formatSpec[T : Format : Arbitrary : Equal](name : String) = 
     { property(name) = validFormat[T] }
 
   implicit val arbitraryUnit = Arbitrary[Unit](value(() => ()))
