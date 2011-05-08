@@ -11,6 +11,8 @@ import scala.collection._;
 import java.io._;
 import Operations._;
 
+import sys.error
+
 trait Generic extends CoreProtocol{
   implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]]
 

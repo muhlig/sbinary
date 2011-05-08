@@ -2,6 +2,8 @@ package sbinary;
 
 import Operations._;
 
+import sys.error
+
 trait StandardPrimitives extends CoreProtocol{
   private def readUnsigned(in : Input) = in.readByte.toInt & 0xFF
 
@@ -24,7 +26,7 @@ trait StandardPrimitives extends CoreProtocol{
     def writes(out : Output, t : Short) = {
       out.writeByte(((t >>> 8) & 0xFF).toByte);
       out.writeByte(t.toByte);
-    } 
+    }
   }
 
   implicit object IntFormat extends Format[Int]{
