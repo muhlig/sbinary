@@ -46,16 +46,18 @@ trait StandardPrimitives extends CoreProtocol{
     } 
   }
 
-  implicit object LongFormat extends Format[Long]{
-    def reads(in : Input) = 
-                (readUnsigned(in).toLong << 56) +
-                (readUnsigned(in).toLong << 48) +
-            		(readUnsigned(in).toLong << 40) +
-                (readUnsigned(in).toLong << 32) +
-                (readUnsigned(in).toLong << 24) +
-                (readUnsigned(in).toLong << 16) +
-                (readUnsigned(in).toLong <<  8) +
-                (readUnsigned(in).toLong <<  0);
+  implicit object LongFormat extends Format[Long] {
+
+    def reads(in : Input) =
+      (readUnsigned(in).toLong << 56) +
+      (readUnsigned(in).toLong << 48) +
+      (readUnsigned(in).toLong << 40) +
+      (readUnsigned(in).toLong << 32) +
+      (readUnsigned(in).toLong << 24) +
+      (readUnsigned(in).toLong << 16) +
+      (readUnsigned(in).toLong <<  8) +
+      (readUnsigned(in).toLong <<  0);
+
     def writes(out : Output, t : Long) = {
       out.writeByte((t >>> 56).toByte);
       out.writeByte((t >>> 48).toByte);
@@ -148,10 +150,10 @@ trait JavaUTF extends CoreProtocol{
 
       new String(cbuffer, 0, charCount);
     }
- 
+
     def writes(out : Output, value : String){
       var utflen = 0;
-      
+
       var i = 0;
       def c = value.charAt(i);  
 
@@ -162,8 +164,8 @@ trait JavaUTF extends CoreProtocol{
           else 2) 
         i += 1;
       }
-     
-	    if (utflen > 65535)
+
+      if (utflen > 65535)
         error("encoded string too long: " + utflen + " bytes");
 
       val bbuffer = fetchBuffers(utflen + 2)._2;
@@ -177,12 +179,12 @@ trait JavaUTF extends CoreProtocol{
       append(utflen & 0xFF)
 
       i = 0;
-	    while((i < value.length) && ((c >= 0x0001) && (c <= 0x007F))) {
+      while((i < value.length) && ((c >= 0x0001) && (c <= 0x007F))) {
         bbuffer(count) = c.toByte;
         count += 1; 
         i += 1;
       }
- 
+
       while(i < value.length){
         if ((c >= 0x0001) && (c <= 0x007F)) {
           append(c);
@@ -200,8 +202,9 @@ trait JavaUTF extends CoreProtocol{
 
       out.writeAll(bbuffer, 0, utflen + 2); 
     }
-  }  
+  }
 }
 
 trait JavaFormats extends StandardPrimitives with JavaUTF{
 }
+

@@ -33,7 +33,7 @@ trait Generic extends CoreProtocol{
    * Format instance which encodes the collection by first writing the length
    * of the collection as an int, then writing the collection elements in order.
    */
-  abstract class LengthEncoded[S <: Iterable[T], T: Format] extends CollectionFormat[S, T] {
+  abstract class LengthEncoded[S <: Traversable[T], T: Format] extends CollectionFormat[S, T] {
     def size(s: S) = s.size
     def foreach(s: S)(f: T => Unit) = s.foreach(f)
   }
@@ -43,7 +43,7 @@ trait Generic extends CoreProtocol{
    *
    * implicit ClassManifest required as of 0.3.1 for Scala 2.8 compatibility. -MH
    */
-  def viaArray[S <: Iterable[T], T: Format : ClassManifest] (f : Array[T] => S): Format[S] = new Format[S] {
+  def viaArray[S <: Traversable[T], T: Format : ClassManifest] (f : Array[T] => S): Format[S] = new Format[S] {
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
     def reads(in : Input) = f(read[Array[T]](in));
   }
@@ -53,7 +53,7 @@ trait Generic extends CoreProtocol{
    *
    * Exists to solve 2.7/2.8 compatibility.  -MH
    */
-  def viaSeq[S <: Iterable[T], T: Format] (f : Seq[T] => S) : Format[S] = new Format[S] {
+  def viaSeq[S <: Traversable[T], T: Format] (f : Seq[T] => S) : Format[S] = new Format[S] {
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
     def reads(in : Input) = f(read[List[T]](in));
   }
