@@ -15,8 +15,7 @@ import sys.error
 
 trait Generic extends CoreProtocol{
   implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]]
-
-  // Needed to implement viaSeq, which is need for 2.7/2.8 compatibility -MH
+  // Needed to implement viaSeq
   implicit def listFormat[T: Format] : Format[List[T]];
 
   /** A more general LengthEncoded.  For 2.7/8 compatibility (arrays are no longer collections). -MH*/
@@ -50,8 +49,7 @@ trait Generic extends CoreProtocol{
 
   /**
    * Length encodes, but with the result built from a Seq.
-   *
-   * Exists to solve 2.7/2.8 compatibility.  -MH
+   * Useful for when a `ClassManifest` is not available the underlying type `T`.
    */
   def viaSeq[S <: Traversable[T], T: Format] (f : Seq[T] => S) : Format[S] = new Format[S] {
     def writes(out : Output, xs : S) = { write(out, xs.size); xs.foreach(write(out, _)); }
@@ -141,10 +139,10 @@ trait Generic extends CoreProtocol{
   case class Summand[T](clazz : Class[_], format: Format[T])
 
   implicit def classToSummand[T: Format](clazz : Class[T]) : Summand[T] =
-   Summand[T](clazz, implicitly[Format[T]])
+   Summand[T](clazz, format[T])
 
   implicit def formatToSummand[T: Format : ClassManifest](format : Format[T]): Summand[T] =
-    Summand[T](implicitly[ClassManifest[T]].erasure, format)
+    Summand[T](classManifest[T].erasure, format)
 
   // This is a bit gross. 
   implicit def anyToSummand[T](t : T) = Summand[T](t.asInstanceOf[AnyRef].getClass, asSingleton(t))

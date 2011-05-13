@@ -1,10 +1,10 @@
 package sbinary;
 
 object Operations {
-  import java.io._
-  import JavaIO._
+  import java.io.{BufferedInputStream, BufferedOutputStream, ByteArrayInputStream, ByteArrayOutputStream, File, FileInputStream, FileOutputStream};
 
   def format[T: Format]                         = implicitly[Format[T]]
+
   def read[T: Reads](in : Input)                = implicitly[Reads[T]] reads in
   def write[T: Writes](out : Output, value : T) = implicitly[Writes[T]].writes(out, value)
 
@@ -13,7 +13,7 @@ object Operations {
    */
   def toByteArray[T: Writes](t : T): Array[Byte] = {
     val target = new ByteArrayOutputStream()
-    implicitly[Writes[T]].writes(target, t)
+    write(target, t)
     target.toByteArray()
   }
  
@@ -28,7 +28,7 @@ object Operations {
    */
   def toFile[T: Writes](t : T)(file : File) = {
     val out = new BufferedOutputStream(new FileOutputStream(file))
-    
+
     try out.write(toByteArray(t))
     finally out.close()
   }

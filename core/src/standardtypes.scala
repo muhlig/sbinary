@@ -4,6 +4,9 @@ package sbinary;
 
 import Operations._;
 import scala.collection._;
+import generic.CanBuildFrom
+
+import sys.error
 
 trait BasicTypes extends CoreProtocol{
   implicit def optionsAreFormat[S: Format] : Format[Option[S]] = new Format[Option[S]] {
@@ -35,15 +38,21 @@ trait BasicTypes extends CoreProtocol{
 </#list>
 }
 
-trait CollectionTypes extends BasicTypes with Generic{
-  implicit def listFormat[T: Format] : Format[List[T]] = 
-    new LengthEncoded[List[T], T]{
+trait LowPriorityCollectionTypes extends Generic {
+  def canBuildFormat[CC[X] <: Traversable[X], T](implicit bin : Format[T], cbf: CanBuildFrom[Nothing, T, CC[T]]) : Format[CC[T]] =
+    new LengthEncoded[CC[T], T]{
       def build(length : Int, ts : Iterator[T]) = {
-        val buffer = new mutable.ListBuffer[T];
-        ts.foreach(buffer += (_ : T));
-        buffer.toList;
-      } 
+        val builder = cbf.apply()
+        builder.sizeHint(length)
+        builder ++= ts
+        if(ts.hasNext) error("Builder did not consume all input.") // no lazy builders allowed
+        builder.result()
+      }
     }
+}
+
+trait CollectionTypes extends BasicTypes with LowPriorityCollectionTypes {
+  implicit def listFormat[T](implicit bin : Format[T]) : Format[List[T]] = canBuildFormat[List, T]
 
   implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]] = implicitly[Format[T]] match {
     case ByteFormat => ByteArrayFormat.asInstanceOf[Format[Array[T]]];

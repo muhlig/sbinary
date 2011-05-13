@@ -70,7 +70,6 @@ import Equal._;
 
 object CompatTests extends Properties("CompatTests"){
   import java.io._;
-  import JavaIO._;
 
   def compatFor[T](name : String, readJ : DataInput => T, writeJ : (DataOutput, T) => Unit)(implicit fmt : Format[T], arb : Arbitrary[T]) = {
     property(name + "AgreesWithDataInput") = forAll { (x : T) =>
@@ -166,7 +165,7 @@ object FormatTests extends Properties("Formats"){
                             oneOf(value(Bar),
                             arbitrary[(Int, Long)].map{case (i, j) => Bif(i, j)},
                             arbitrary[String].map(Baz(_))))
-  
+
 
 
   sealed abstract class BinaryTree;
@@ -198,8 +197,8 @@ object FormatTests extends Properties("Formats"){
   }
 
   implicit val SomeEnumFormat = enumerationFormat[SomeEnum.Value](SomeEnum)
-  implicit val SomeEnumEq     = allAreEqual[SomeEnum.Value]
-  implicit val SomeEnumArb    = Arbitrary(Gen.oneOf[SomeEnum.Value](SomeEnum.items))
+  implicit val SomeEnumEq = allAreEqual[SomeEnum.Value]
+  implicit val SomeEnumArb = Arbitrary(Gen.oneOf[SomeEnum.Value](SomeEnum.items))
 
   formatSpec[Boolean]("Boolean");
   formatSpec[Byte]("Byte");
