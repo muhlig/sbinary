@@ -28,7 +28,7 @@ trait Generic extends CoreProtocol{
     def writes(out : Output, ts : S) = { write(out, size(ts)); foreach(ts)(write(out, _)); }
   }
 
-  /** 
+  /**
    * Format instance which encodes the collection by first writing the length
    * of the collection as an int, then writing the collection elements in order.
    */
@@ -92,7 +92,7 @@ trait Generic extends CoreProtocol{
 
   /**
    * Attaches a stamp to the data. This stamp is placed at the beginning of the format and may be used
-   * to verify the integrity of the data (e.g. a magic number for the data format version). 
+   * to verify the integrity of the data (e.g. a magic number for the data format version).
    */
   def withStamp[S: Format, T](stamp : S)(binary : Format[T]) : Format[T] = new Format[T] {
     def reads(in : Input) = {
@@ -144,7 +144,7 @@ trait Generic extends CoreProtocol{
   implicit def formatToSummand[T: Format : ClassManifest](format : Format[T]): Summand[T] =
     Summand[T](classManifest[T].erasure, format)
 
-  // This is a bit gross. 
+  // This is a bit gross.
   implicit def anyToSummand[T](t : T) = Summand[T](t.asInstanceOf[AnyRef].getClass, asSingleton(t))
 
   /**

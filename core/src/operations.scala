@@ -1,12 +1,12 @@
 package sbinary;
 
 object Operations {
-  import java.io.{BufferedInputStream, BufferedOutputStream, ByteArrayInputStream, ByteArrayOutputStream, File, FileInputStream, FileOutputStream};
+  import java.io.{BufferedInputStream, BufferedOutputStream, ByteArrayInputStream, ByteArrayOutputStream, File, FileInputStream, FileOutputStream}
 
-  def format[T: Format]                         = implicitly[Format[T]]
+  def format[T: Format] = implicitly[Format[T]]
 
-  def read[T: Reads](in : Input)                = implicitly[Reads[T]] reads in
-  def write[T: Writes](out : Output, value : T) = implicitly[Writes[T]].writes(out, value)
+  def read[T: Reads](in : Input) = implicitly[Reads[T]] reads in
+  def write[T: Writes](out : Output, value : T) = implicitly[Writes[T]] writes (out, value)
 
   /**
    * Get the serialized value of this class as a byte array.
@@ -16,14 +16,14 @@ object Operations {
     write(target, t)
     target.toByteArray()
   }
- 
+
   /**
    * Read a value from the byte array. Anything past the end of the value will be
    * ignored.
-   */ 
+   */
   def fromByteArray[T: Reads](array : Array[Byte]) = read[T](new ByteArrayInputStream(array))
 
-  /** 
+  /**
    * Convenience method for writing binary data to a file.
    */
   def toFile[T: Writes](t : T)(file : File) = {
@@ -33,7 +33,7 @@ object Operations {
     finally out.close()
   }
 
-  /** 
+  /**
    * Convenience method for reading binary data from a file.
    */
   def fromFile[T: Reads](file : File) = {

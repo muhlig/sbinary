@@ -8,7 +8,7 @@ import generic.CanBuildFrom
 
 import sys.error
 
-trait BasicTypes extends CoreProtocol{
+trait BasicTypes extends CoreProtocol {
   implicit def optionsAreFormat[S: Format] : Format[Option[S]] = new Format[Option[S]] {
     def reads(in : Input) = read[Byte](in) match {
       case 1 => Some(read[S](in));
@@ -22,7 +22,7 @@ trait BasicTypes extends CoreProtocol{
   }
 
 <#list 2..22 as i>
-  implicit def tuple${i}Format[<@tbounds n=i bounds="Format"/>] : Format[<@Tuple n=i/>] = new Format[<@Tuple n=i/>]{
+  implicit def tuple${i}Format[<@tbounds n=i bounds="Format"/>] : Format[<@Tuple n=i/>] = new Format[<@Tuple n=i/>] {
     def reads (in : Input) : <@Tuple n=i/> = (
     <#list 1..i as j>
       read[T${j}](in)<#if i!=j>,</#if>
@@ -39,6 +39,7 @@ trait BasicTypes extends CoreProtocol{
 }
 
 trait LowPriorityCollectionTypes extends Generic {
+
   def canBuildFormat[CC[X] <: Traversable[X], T](implicit bin : Format[T], cbf: CanBuildFrom[Nothing, T, CC[T]]) : Format[CC[T]] =
     new LengthEncoded[CC[T], T]{
       def build(length : Int, ts : Iterator[T]) = {
@@ -54,10 +55,10 @@ trait LowPriorityCollectionTypes extends Generic {
 trait CollectionTypes extends BasicTypes with LowPriorityCollectionTypes {
   implicit def listFormat[T](implicit bin : Format[T]) : Format[List[T]] = canBuildFormat[List, T]
 
-  implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]] = implicitly[Format[T]] match {
-    case ByteFormat => ByteArrayFormat.asInstanceOf[Format[Array[T]]];
-    case _ => 
-      new CollectionFormat[Array[T], T]{
+  implicit def arrayFormat[T: Format : ClassManifest] : Format[Array[T]] = format[T] match {
+    case ByteFormat => ByteArrayFormat
+    case _ =>
+      new CollectionFormat[Array[T], T] {
         def build(length : Int, ts : Iterator[T]) = {
           val result = new Array[T](length);
           ts.copyToArray(result, 0);
@@ -65,10 +66,10 @@ trait CollectionTypes extends BasicTypes with LowPriorityCollectionTypes {
         }
         def size(a: Array[T]) = a.length
         def foreach(a: Array[T])(f: T => Unit) = a foreach f
-      } 
+      }
     }
 
-  implicit object ByteArrayFormat extends Format[Array[Byte]]{
+  implicit object ByteArrayFormat extends Format[Array[Byte]] {
     def reads(in : Input) = {
       val length = read[Int](in);
       val bytes = new Array[Byte](length);
@@ -76,16 +77,16 @@ trait CollectionTypes extends BasicTypes with LowPriorityCollectionTypes {
       bytes; 
     }
 
-    def writes(out : Output, bytes : Array[Byte]){
+    def writes(out : Output, bytes : Array[Byte]) {
       write(out, bytes.length);
       out.writeAll(bytes);
     }
   }
 
-  implicit def mutableSetFormat[T: Format] : Format[mutable.Set[T]] = 
+  implicit def mutableSetFormat[T: Format] : Format[mutable.Set[T]] =
     viaSeq((x : Seq[T]) => mutable.Set(x :_*))
 
-  implicit def immutableSetFormat[T: Format] : Format[immutable.Set[T]] = 
+  implicit def immutableSetFormat[T: Format] : Format[immutable.Set[T]] =
     viaSeq((x : Seq[T]) => immutable.Set(x :_*))
 
   implicit def immutableSortedSetFormat[S: Ordering : Format] : Format[immutable.SortedSet[S]] = {
@@ -107,15 +108,15 @@ trait CollectionTypes extends BasicTypes with LowPriorityCollectionTypes {
    * the stream termination.
    *
    * This is to ensure proper laziness behaviour - values will be written as they
-   * become available rather than thunking the entire stream up front. 
-   * 
+   * become available rather than thunking the entire stream up front.
+   *
    * Warning! The resulting Stream is not read lazily. If you wish to read a Stream
    * lazily you may consider it to be a sequence of Option[T]s terminated by a None.
    *
    * Note that this behaviour has changed from that of SFormat 0.2.1, though the format
    * remains the same.
    */
-  implicit def streamFormat[S: Format] : Format[Stream[S]] = new Format[Stream[S]]{
+  implicit def streamFormat[S: Format] : Format[Stream[S]] = new Format[Stream[S]] {
     def reads(in : Input) = {
       val buffer = new mutable.ArrayBuffer[S];
       while((read[Option[S]](in) match {
@@ -123,27 +124,27 @@ trait CollectionTypes extends BasicTypes with LowPriorityCollectionTypes {
         case None => false;
       })){};
       buffer.toStream;
-    } 
+    }
 
-    def writes(out : Output, stream : Stream[S]){
+    def writes(out : Output, stream : Stream[S]) {
       stream.foreach(x => { write[Byte](out, 1); write(out, x); });
       write[Byte](out, 0);
     }
   }
 }
 
-trait StandardTypes extends CollectionTypes{
-  implicit object BigIntFormat extends Format[BigInt]{
+trait StandardTypes extends CollectionTypes {
+  implicit object BigIntFormat extends Format[BigInt] {
     def reads(in : Input) = BigInt(read[Array[Byte]](in));
     def writes(out : Output, i : BigInt) = write(out, i.toByteArray);
   }
 
-  implicit object BigDecimalFormat extends Format[BigDecimal]{
+  implicit object BigDecimalFormat extends Format[BigDecimal] {
     def reads(in : Input) = BigDecimal(read[String](in));
     def writes(out : Output, d : BigDecimal) = write(out, d.toString);
   }
 
-  implicit object ClassFormat extends Format[Class[_]]{
+  implicit object ClassFormat extends Format[Class[_]] {
     def reads(in : Input) = Class.forName(read[String](in));
     def writes(out : Output, clazz : Class[_]) = write(out, clazz.getName);
   }
@@ -159,7 +160,7 @@ trait StandardTypes extends CollectionTypes{
 
 
   import scala.xml.{XML, Elem, NodeSeq};
-  implicit lazy val XmlFormat : Format[NodeSeq] = new Format[NodeSeq]{
+  implicit lazy val XmlFormat : Format[NodeSeq] = new Format[NodeSeq] {
     def reads(in : Input) = XML.loadString(read[String](in)).child;
     def writes(out : Output, elem : NodeSeq) = write(out, <binary>elem</binary>.toString);
   }
